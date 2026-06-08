@@ -1,0 +1,63 @@
+/* Основные стили для Электронной библиотеки */
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+.container {
+    flex: 1;
+}
+
+/* Стилизация карточек книг на главной */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    border-radius: 10px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.card-img-left, .img-fluid {
+    object-fit: cover;
+    height: 100%;
+    max-height: 280px;
+    width: 100%;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+/* Стили для вывода Markdown-контента */
+.preview-content, .p-3.border {
+    background-color: #ffffff;
+    line-height: 1.6;
+    font-size: 1.05rem;
+}
+
+.preview-content h1, .preview-content h2, .preview-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+/* Кастомизация пагинации */
+.pagination .page-item.active .page-link {
+    background-color: #212529;
+    border-color: #212529;
+}
+
+.pagination .page-link {
+    color: #212529;
+}
+
+/* Подвал по ГОСТу */
+footer {
+    background-color: #212529;
+    color: #rgba(255, 255, 255, 0.75);
+    font-size: 0.9rem;
+}
