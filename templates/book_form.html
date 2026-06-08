@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{% if action == 'add' %}Добавить книгу{% else %}Редактировать книгу{% endif %}</h2>
+
+<form method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow-sm mt-3">
+    <div class="mb-3">
+        <label class="form-label">Название книги</label>
+        <input type="text" name="title" class="form-content form-control" value="{{ book.title if book else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Автор</label>
+        <input type="text" name="author" class="form-control" value="{{ book.author if book else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Издательство</label>
+        <input type="text" name="publisher" class="form-control" value="{{ book.publisher if book else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Год издания</label>
+        <input type="number" name="year" class="form-control" value="{{ book.year if book else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Объём (в страницах)</label>
+        <input type="number" name="pages" class="form-control" value="{{ book.pages if book else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Жанры (удерживайте Ctrl для выбора нескольких)</label>
+        <select name="genres" class="form-select" multiple required>
+            {% for g in genres %}
+                <option value="{{ g.id }}" {% if book and g in book.genres %}selected{% endif %}>{{ g.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if action == 'add' %}
+    <div class="mb-3">
+        <label class="form-label">Обложка книги (изображение)</label>
+        <input type="file" name="cover" class="form-control" accept="image/*" required>
+    </div>
+    {% endif %}
+    <div class="mb-3">
+        <label class="form-label">Краткое описание (Поддерживает Markdown)</label>
+        <textarea name="description" id="markdown-editor" class="form-control">{{ book.description if book else '' }}</textarea>
+    </div>
+    
+    <button type="submit" class="btn btn-success">Сохранить</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const easyMDE = new EasyMDE({element: document.getElementById('markdown-editor')});
+</script>
+{% endblock %}
