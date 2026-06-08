@@ -1,30 +1,30 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>{% if action == 'add' %}Добавить книгу{% else %}Редактировать книгу{% endif %}</h2>
+<h2>{% if action == 'add' %}Р”РѕР±Р°РІРёС‚СЊ РєРЅРёРіСѓ{% else %}Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РєРЅРёРіСѓ{% endif %}</h2>
 
 <form method="POST" enctype="multipart/form-data" class="bg-white p-4 rounded shadow-sm mt-3">
     <div class="mb-3">
-        <label class="form-label">Название книги</label>
+        <label class="form-label">РќР°Р·РІР°РЅРёРµ РєРЅРёРіРё</label>
         <input type="text" name="title" class="form-content form-control" value="{{ book.title if book else '' }}" required>
     </div>
     <div class="mb-3">
-        <label class="form-label">Автор</label>
+        <label class="form-label">РђРІС‚РѕСЂ</label>
         <input type="text" name="author" class="form-control" value="{{ book.author if book else '' }}" required>
     </div>
     <div class="mb-3">
-        <label class="form-label">Издательство</label>
+        <label class="form-label">РР·РґР°С‚РµР»СЊСЃС‚РІРѕ</label>
         <input type="text" name="publisher" class="form-control" value="{{ book.publisher if book else '' }}" required>
     </div>
     <div class="mb-3">
-        <label class="form-label">Год издания</label>
+        <label class="form-label">Р“РѕРґ РёР·РґР°РЅРёСЏ</label>
         <input type="number" name="year" class="form-control" value="{{ book.year if book else '' }}" required>
     </div>
     <div class="mb-3">
-        <label class="form-label">Объём (в страницах)</label>
+        <label class="form-label">РћР±СЉС‘Рј (РІ СЃС‚СЂР°РЅРёС†Р°С…)</label>
         <input type="number" name="pages" class="form-control" value="{{ book.pages if book else '' }}" required>
     </div>
     <div class="mb-3">
-        <label class="form-label">Жанры (удерживайте Ctrl для выбора нескольких)</label>
+        <label class="form-label">Р–Р°РЅСЂС‹ (СѓРґРµСЂР¶РёРІР°Р№С‚Рµ Ctrl РґР»СЏ РІС‹Р±РѕСЂР° РЅРµСЃРєРѕР»СЊРєРёС…)</label>
         <select name="genres" class="form-select" multiple required>
             {% for g in genres %}
                 <option value="{{ g.id }}" {% if book and g in book.genres %}selected{% endif %}>{{ g.name }}</option>
@@ -33,17 +33,17 @@
     </div>
     {% if action == 'add' %}
     <div class="mb-3">
-        <label class="form-label">Обложка книги (изображение)</label>
+        <label class="form-label">РћР±Р»РѕР¶РєР° РєРЅРёРіРё (РёР·РѕР±СЂР°Р¶РµРЅРёРµ)</label>
         <input type="file" name="cover" class="form-control" accept="image/*" required>
     </div>
     {% endif %}
     <div class="mb-3">
-        <label class="form-label">Краткое описание (Поддерживает Markdown)</label>
+        <label class="form-label">РљСЂР°С‚РєРѕРµ РѕРїРёСЃР°РЅРёРµ (РџРѕРґРґРµСЂР¶РёРІР°РµС‚ Markdown)</label>
         <textarea name="description" id="markdown-editor" class="form-control">{{ book.description if book else '' }}</textarea>
     </div>
     
-    <button type="submit" class="btn btn-success">Сохранить</button>
-    <a href="{{ url_for('index') }}" class="btn btn-secondary">Отмена</a>
+    <button type="submit" class="btn btn-success">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">РћС‚РјРµРЅР°</a>
 </form>
 {% endblock %}
 

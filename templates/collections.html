@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Мои подборки</h2>
-    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newCollectionModal">Добавить подборку</button>
+    <h2>РњРѕРё РїРѕРґР±РѕСЂРєРё</h2>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newCollectionModal">Р”РѕР±Р°РІРёС‚СЊ РїРѕРґР±РѕСЂРєСѓ</button>
 </div>
 
 <table class="table table-striped table-hover bg-white shadow-sm rounded">
     <thead>
         <tr>
-            <th>Название подборки</th>
-            <th>Количество книг</th>
-            <th>Действие</th>
+            <th>РќР°Р·РІР°РЅРёРµ РїРѕРґР±РѕСЂРєРё</th>
+            <th>РљРѕР»РёС‡РµСЃС‚РІРѕ РєРЅРёРі</th>
+            <th>Р”РµР№СЃС‚РІРёРµ</th>
         </tr>
     </thead>
     <tbody>
@@ -19,12 +19,12 @@
             <td>{{ col.name }}</td>
             <td>{{ col.books|length }}</td>
             <td>
-                <a href="{{ url_for('view_collection', collection_id=col.id) }}" class="btn btn-primary btn-sm">Просмотр</a>
+                <a href="{{ url_for('view_collection', collection_id=col.id) }}" class="btn btn-primary btn-sm">РџСЂРѕСЃРјРѕС‚СЂ</a>
             </td>
         </tr>
         {% else %}
         <tr>
-            <td colspan="3" class="text-center text-muted">У вас пока нет созданных подборок.</td>
+            <td colspan="3" class="text-center text-muted">РЈ РІР°СЃ РїРѕРєР° РЅРµС‚ СЃРѕР·РґР°РЅРЅС‹С… РїРѕРґР±РѕСЂРѕРє.</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -33,19 +33,19 @@
 <div class="modal fade" id="newCollectionModal" tabindex="-1">
     <div class="modal-dialog modal-content">
         <div class="modal-header">
-            <h5 class="modal-title">Новая подборка</h5>
+            <h5 class="modal-title">РќРѕРІР°СЏ РїРѕРґР±РѕСЂРєР°</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <form action="{{ url_for('add_collection') }}" method="POST">
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">Название подборки</label>
+                    <label class="form-label">РќР°Р·РІР°РЅРёРµ РїРѕРґР±РѕСЂРєРё</label>
                     <input type="text" name="name" class="form-control" required>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-success">Добавить</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-success">Р”РѕР±Р°РІРёС‚СЊ</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">РћС‚РјРµРЅР°</button>
             </div>
         </form>
     </div>

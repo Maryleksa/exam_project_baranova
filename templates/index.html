@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>{% if collection_title %}Подборка: {{ collection_title }}{% else %}Список книг{% endif %}</h2>
+<h2>{% if collection_title %}РџРѕРґР±РѕСЂРєР°: {{ collection_title }}{% else %}РЎРїРёСЃРѕРє РєРЅРёРі{% endif %}</h2>
 
 <div class="row row-cols-1 row-cols-md-2 g-4 mt-2">
     {% for book in books %}
@@ -9,26 +9,26 @@
             <div class="row g-0">
                 <div class="col-md-4">
                     {% if book.covers %}
-                        <img src="{{ url_for('static', filename='uploads/' ~ book.covers[0].filename) }}" class="img-fluid rounded-start" alt="Обложка">
+                        <img src="{{ url_for('static', filename='uploads/' ~ book.covers[0].filename) }}" class="img-fluid rounded-start" alt="РћР±Р»РѕР¶РєР°">
                     {% endif %}
                 </div>
                 <div class="col-md-8">
                     <div class="card-body">
                         <h5 class="card-title">{{ book.title }}</h5>
-                        <p class="card-text"><strong>Автор:</strong> {{ book.author }}</p>
-                        <p class="card-text"><strong>Жанры:</strong> {% for g in book.genres %}<span class="badge bg-secondary me-1">{{ g.name }}</span>{% endfor %}</p>
-                        <p class="card-text"><strong>Год:</strong> {{ book.year }}</p>
-                        <p class="card-text"><strong>Оценка:</strong> ? {{ book.mid_rating }} (Рецензий: {{ book.reviews|length }})</p>
+                        <p class="card-text"><strong>РђРІС‚РѕСЂ:</strong> {{ book.author }}</p>
+                        <p class="card-text"><strong>Р–Р°РЅСЂС‹:</strong> {% for g in book.genres %}<span class="badge bg-secondary me-1">{{ g.name }}</span>{% endfor %}</p>
+                        <p class="card-text"><strong>Р“РѕРґ:</strong> {{ book.year }}</p>
+                        <p class="card-text"><strong>РћС†РµРЅРєР°:</strong> ? {{ book.mid_rating }} (Р РµС†РµРЅР·РёР№: {{ book.reviews|length }})</p>
                         
                         <div class="mt-3">
-                            <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-primary btn-sm">Просмотр</a>
+                            <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-primary btn-sm">РџСЂРѕСЃРјРѕС‚СЂ</a>
                             
                             {% if current_user.is_authenticated and current_user.role.name in ['administrator', 'moderator'] %}
-                                <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-warning btn-sm">Редактировать</a>
+                                <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-warning btn-sm">Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ</a>
                             {% endif %}
                             
                             {% if current_user.is_authenticated and current_user.role.name == 'administrator' %}
-                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ book.id }}">Удалить</button>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ book.id }}">РЈРґР°Р»РёС‚СЊ</button>
                             {% endif %}
                         </div>
                     </div>
@@ -40,17 +40,17 @@
     <div class="modal fade" id="deleteModal{{ book.id }}" tabindex="-1">
         <div class="modal-content modal-dialog">
             <div class="modal-header">
-                <h5 class="modal-title">Удаление книги</h5>
+                <h5 class="modal-title">РЈРґР°Р»РµРЅРёРµ РєРЅРёРіРё</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Вы уверены, что хотите удалить книгу {{ book.title }}?
+                Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ РєРЅРёРіСѓ {{ book.title }}?
             </div>
             <div class="modal-footer">
                 <form action="{{ url_for('delete_book', book_id=book.id) }}" method="POST">
-                    <button type="submit" class="btn btn-danger">Да</button>
+                    <button type="submit" class="btn btn-danger">Р”Р°</button>
                 </form>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Нет</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">РќРµС‚</button>
             </div>
         </div>
     </div>
@@ -70,6 +70,6 @@
 {% endif %}
 
 {% if current_user.is_authenticated and current_user.role.name == 'administrator' %}
-    <div class="mt-4 mb-5"><a href="{{ url_for('add_book') }}" class="btn btn-success">Добавить книгу</a></div>
+    <div class="mt-4 mb-5"><a href="{{ url_for('add_book') }}" class="btn btn-success">Р”РѕР±Р°РІРёС‚СЊ РєРЅРёРіСѓ</a></div>
 {% endif %}
 {% endblock %}

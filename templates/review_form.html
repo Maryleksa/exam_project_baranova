@@ -1,25 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Написать рецензию на книгу «{{ book.title }}»</h2>
+<h2>РќР°РїРёСЃР°С‚СЊ СЂРµС†РµРЅР·РёСЋ РЅР° РєРЅРёРіСѓ В«{{ book.title }}В»</h2>
 
 <form method="POST" class="bg-white p-4 rounded shadow-sm mt-3">
     <div class="mb-3">
-        <label class="form-label">Оценка книги</label>
+        <label class="form-label">РћС†РµРЅРєР° РєРЅРёРіРё</label>
         <select name="rating" class="form-select">
-            <option value="5" selected>5 – отлично</option>
-            <option value="4">4 – хорошо</option>
-            <option value="3">3 – удовлетворительно</option>
-            <option value="2">2 – неудовлетворительно</option>
-            <option value="1">1 – плохо</option>
-            <option value="0">0 – ужасно</option>
+            <option value="5" selected>5 вЂ“ РѕС‚Р»РёС‡РЅРѕ</option>
+            <option value="4">4 вЂ“ С…РѕСЂРѕС€Рѕ</option>
+            <option value="3">3 вЂ“ СѓРґРѕРІР»РµС‚РІРѕСЂРёС‚РµР»СЊРЅРѕ</option>
+            <option value="2">2 вЂ“ РЅРµСѓРґРѕРІР»РµС‚РІРѕСЂРёС‚РµР»СЊРЅРѕ</option>
+            <option value="1">1 вЂ“ РїР»РѕС…Рѕ</option>
+            <option value="0">0 вЂ“ СѓР¶Р°СЃРЅРѕ</option>
         </select>
     </div>
     <div class="mb-3">
-        <label class="form-label">Текст рецензии (Поддерживает Markdown)</label>
+        <label class="form-label">РўРµРєСЃС‚ СЂРµС†РµРЅР·РёРё (РџРѕРґРґРµСЂР¶РёРІР°РµС‚ Markdown)</label>
         <textarea name="text" id="review-editor" class="form-control" rows="5"></textarea>
     </div>
-    <button type="submit" class="btn btn-success">Сохранить</button>
-    <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-secondary">Отмена</a>
+    <button type="submit" class="btn btn-success">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+    <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-secondary">РћС‚РјРµРЅР°</a>
 </form>
 {% endblock %}
 

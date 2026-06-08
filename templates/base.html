@@ -2,27 +2,27 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Электронная библиотека</title>
+    <title>Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏ Р±РёР±Р»РёРѕС‚РµРєР°</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">АИС «Электронная библиотека»</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">РђРРЎ В«Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏ Р±РёР±Р»РёРѕС‚РµРєР°В»</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Главная</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Р“Р»Р°РІРЅР°СЏ</a></li>
                     {% if current_user.is_authenticated and current_user.role.name == 'user' %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('collections') }}">Мои подборки</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('collections') }}">РњРѕРё РїРѕРґР±РѕСЂРєРё</a></li>
                     {% endif %}
                 </ul>
                 <div class="d-flex align-items-center text-white">
                     {% if current_user.is_authenticated %}
                         <span class="me-3">{{ current_user.full_name }} ({{ current_user.role.description }})</span>
-                        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Выйти</a>
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Р’С‹Р№С‚Рё</a>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Войти</a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm">Р’РѕР№С‚Рё</a>
                     {% endif %}
                 </div>
             </div>
@@ -45,7 +45,7 @@
     </div>
 
     <footer class="bg-dark text-white text-center py-3 mt-5">
-        <p class="mb-0">Группа: ХХ-ХХХ | Выполнил: ФИО Студента</p>
+        <p class="mb-0">Р“СЂСѓРїРїР°: 241-371 | Р’С‹РїРѕР»РЅРёР»: Р‘Р°СЂР°РЅРѕРІР° РњР°СЂРёСЏ Р“СЂРёРіРѕСЂСЊРµРІРЅР°</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

@@ -1,43 +1,33 @@
+# -*- coding: cp1251 -*-
 import os
 import hashlib
 from flask import Flask, render_template, request, redirect, url_for, flash, abort
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, login_required, current_user
+from flask_login import login_required, current_user
 import markdown
 import bleach
 from werkzeug.utils import secure_filename
 
+# 1. Сначала импортируем менеджер аутентификации
+from auth import login_manager
+
+# 2. Затем строго инициализируем сам Flask-апп
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_super_secret_exam_key_12345'
-# Настройка подключения к MySQL (замените user, password и db_name на свои)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://user:password@localhost/db_name'
+app.config['SECRET_KEY'] = '1234qwer'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///electronic_library.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['PER_PAGE'] = 10
 
-# Инициализация расширений
-from models import db, Book, Genre, Cover, Review, User, Role, Collection, book_genre, book_collection
-
-db.init_app(app)
-login_manager = LoginManager()
+# 3. Связываем login_manager с созданным приложением app
 login_manager.init_app(app)
-login_manager.login_view = 'login'
-login_manager.login_message = "Для выполнения данного действия необходимо пройти процедуру аутентификации."
-login_manager.login_message_category = "warning"
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+# 4. Подключаем базу данных моделей
+from models import db, Book, Genre, Cover, Review, User, Role, Collection, book_genre, book_collection
+db.init_app(app)
 
-# Кастомный фильтр для Markdown и Санитайзера Bleach
-@app.template_filter('markdown')
-def render_markdown(text):
-    if not text:
-        return ""
-    # Разрешенные теги и атрибуты после конвертации Markdown в HTML
-    allowed_tags = bleach.ALLOWED_TAGS + ['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br', 'hr', 'strong', 'em', 'u']
-    cleaned_html = bleach.clean(markdown.markdown(text), tags=allowed_tags)
-    return cleaned_html
+# --- МАРШРУТЫ (ROUTES) ---
+# (Весь остальной код с @app.route('/') и ниже оставляй без изменений)
 
 # --- МАРШРУТЫ (ROUTES) ---
 
