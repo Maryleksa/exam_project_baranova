@@ -1,17 +1,17 @@
-# -*- coding: cp1251 -*-
+# -*- coding: utf-8 -*-
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 
 db = SQLAlchemy()
 
-# Таблица связи Многие-ко-Многим Книги и Жанры
+# РўР°Р±Р»РёС†Р° СЃРІСЏР·Рё РњРЅРѕРіРёРµ-РєРѕ-РњРЅРѕРіРёРј РљРЅРёРіРё Рё Р–Р°РЅСЂС‹
 book_genre = db.Table('book_genre',
     db.Column('book_id', db.Integer, db.ForeignKey('books.id', ondelete='CASCADE'), primary_key=True),
     db.Column('genre_id', db.Integer, db.ForeignKey('genres.id', ondelete='CASCADE'), primary_key=True)
 )
 
-# Таблица связи Многие-ко-Многим Книги и Подборки (Вариант 2)
+# РўР°Р±Р»РёС†Р° СЃРІСЏР·Рё РњРЅРѕРіРёРµ-РєРѕ-РњРЅРѕРіРёРј РљРЅРёРіРё Рё РџРѕРґР±РѕСЂРєРё
 book_collection = db.Table('book_collection',
     db.Column('book_id', db.Integer, db.ForeignKey('books.id', ondelete='CASCADE'), primary_key=True),
     db.Column('collection_id', db.Integer, db.ForeignKey('collections.id', ondelete='CASCADE'), primary_key=True)
@@ -32,27 +32,29 @@ class Book(db.Model):
     author = db.Column(db.String(255), nullable=False)
     pages = db.Column(db.Integer, nullable=False)
     
+    # РћС‚РЅРѕС€РµРЅРёСЏ СЃ РєР°СЃРєР°РґРЅС‹Рј СѓРґР°Р»РµРЅРёРµРј Р·Р°РІРёСЃРёРјС‹С… СЃСѓС‰РЅРѕСЃС‚РµР№
     genres = db.relationship('Genre', secondary=book_genre, backref=db.backref('books', lazy='dynamic'))
-    covers = db.relationship('Cover', backref='book', cascade='all, delete-orphan', lazy=True)
-    reviews = db.relationship('Review', backref='book', cascade='all, delete-orphan', lazy=True)
+    covers = db.relationship('Cover', backref='book', cascade="all, delete-orphan", passive_deletes=True)
+    reviews = db.relationship('Review', backref='book', cascade="all, delete-orphan", passive_deletes=True)
 
     @property
     def mid_rating(self):
-        ratings = [r.rating for r in self.reviews]
-        return round(sum(ratings) / len(ratings), 2) if ratings else 0
+        if not self.reviews:
+            return 0.0
+        return round(sum(r.rating for r in self.reviews) / len(self.reviews), 2)
 
 class Cover(db.Model):
     __tablename__ = 'covers'
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
-    mime_type = db.Column(db.String(100), nullable=False)
-    md5_hash = db.Column(db.String(32), nullable=False)
+    mime_type = db.Column(db.String(255), nullable=False)
+    md5_hash = db.Column(db.String(255), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id', ondelete='CASCADE'), nullable=False)
 
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
+    name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text, nullable=False)
 
 class User(db.Model, UserMixin):
@@ -66,6 +68,7 @@ class User(db.Model, UserMixin):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
     
     role = db.relationship('Role', backref='users')
+    collections = db.relationship('Collection', backref='user', cascade="all, delete-orphan", passive_deletes=True)
 
     @property
     def full_name(self):
@@ -90,5 +93,5 @@ class Collection(db.Model):
     name = db.Column(db.String(255), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     
-    user = db.relationship('User', backref='collections')
-    books = db.relationship('Book', secondary=book_collection, backref=db.backref('collections', lazy='dynamic'))
+    # Р’ РјРѕРґРµР»Рё Collection
+    books = db.relationship('Book', secondary=book_collection, backref='collections_list')

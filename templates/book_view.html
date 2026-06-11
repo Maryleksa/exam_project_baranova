@@ -34,19 +34,18 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <form action="{{ url_for('add_to_collection', book_id=book.id) }}" method="POST">
-            <div class="modal-body">
-                <label class="form-label">Выберите одну из ваших подборок:</label>
-                <select name="collection_id" class="form-select" required>
-                    {% for col in user_collections %}
-                        <option value="{{ col.id }}">{{ col.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-success">Добавить</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-            </div>
-        </form>
+    <div class="modal-body">
+        <select name="collection_id" class="form-select" required>
+            {% for col in current_user.collections %}
+                <option value="{{ col.id }}">{{ col.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Добавить</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    </div>
+</form>
     </div>
 </div>
 

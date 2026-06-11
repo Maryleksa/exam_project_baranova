@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Подборка: {{ collection.name }}</h2>
+        <a href="{{ url_for('collections') }}" class="btn btn-secondary">Назад к списку</a>
+    </div>
+
+    {% if collection.books %}
+        <div class="list-group">
+            {% for book in collection.books %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ book.title }}</h5>
+                        <small class="text-muted">{{ book.author }}</small>
+                    </div>
+                    <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-outline-primary btn-sm">Открыть книгу</a>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">В этой подборке пока нет книг.</div>
+    {% endif %}
+</div>
+{% endblock %}

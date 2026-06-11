@@ -1,17 +1,16 @@
-# -*- coding: cp1251 -*-
+# -*- coding: utf-8 -*-
 import os
 import hashlib
 from flask import Flask, render_template, request, redirect, url_for, flash, abort
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, login_user, logout_user
 import markdown
 import bleach
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash
 
-# 1. Сначала импортируем менеджер аутентификации
 from auth import login_manager
+from models import db, Book, Genre, Cover, Review, User, Role, Collection
 
-# 2. Затем строго инициализируем сам Flask-апп
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '1234qwer'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///electronic_library.db'
@@ -19,106 +18,115 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
 app.config['PER_PAGE'] = 10
 
-# 3. Связываем login_manager с созданным приложением app
+# РРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј Р•Р”РРќР«Р™ СЌРєР·РµРјРїР»СЏСЂ login_manager
 login_manager.init_app(app)
-
-# 4. Подключаем базу данных моделей
-from models import db, Book, Genre, Cover, Review, User, Role, Collection, book_genre, book_collection
 db.init_app(app)
 
-# --- МАРШРУТЫ (ROUTES) ---
-# (Весь остальной код с @app.route('/') и ниже оставляй без изменений)
+# РљР°СЃС‚РѕРјРЅС‹Р№ С„РёР»СЊС‚СЂ Markdown
+@app.template_filter('markdown')
+def markdown_filter(text):
+    if text:
+        clean_html = bleach.clean(markdown.markdown(text), tags=['p', 'ul', 'ol', 'li', 'strong', 'em', 'h1', 'h2', 'h3', 'br'])
+        return clean_html
+    return ''
 
-# --- МАРШРУТЫ (ROUTES) ---
+def check_rights(action):
+    if not current_user.is_authenticated:
+        return False
+    if action == 'delete':
+        return current_user.role.name == 'administrator'
+    if action in ['add', 'edit']:
+        return current_user.role.name in ['administrator', 'moderator']
+    return True
+
+# --- Р РћРЈРўР« РЎРРЎРўР•РњР« ---
 
 @app.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
-    # Сортировка по ID по убыванию (как аналог даты добавления / последних релизов)
-    pagination = Book.query.order_by(Book.year.desc(), Book.id.desc()).paginate(page=page, per_page=app.config['PER_PAGE'], error_out=False)
+    pagination = Book.query.order_by(Book.year.desc()).paginate(page=page, per_page=app.config['PER_PAGE'], error_out=False)
     books = pagination.items
-    return render_template('index.html', books=books, pagination=pagination)
+    
+    # Р•СЃР»Рё Р·Р°РїСЂР°С€РёРІР°РµС‚СЃСЏ РєРѕРЅРєСЂРµС‚РЅР°СЏ РїРѕРґР±РѕСЂРєР°
+    collection_id = request.args.get('collection_id', type=int)
+    collection_title = None
+    if collection_id:
+        col = Collection.query.get_or_404(collection_id)
+        books = col.books
+        pagination = None
+        collection_title = col.name
 
-@app.route('/book/add', methods=['GET', 'POST'])
+    return render_template('index.html', books=books, pagination=pagination, collection_title=collection_title)
+
+@app.route('/books/add', methods=['GET', 'POST'])
 @login_required
 def add_book():
-    if current_user.role.name != 'administrator':
-        flash("У вас недостаточно прав для выполнения данного действия.", "danger")
+    if not check_rights('add'):
+        flash("РЈ РІР°СЃ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ РґР°РЅРЅРѕРіРѕ РґРµР№СЃС‚РІРёСЏ.", "danger")
         return redirect(url_for('index'))
-    
+        
     genres = Genre.query.all()
     if request.method == 'POST':
         try:
             title = request.form.get('title')
-            description = request.form.get('description')
-            year = request.form.get('year')
+            description = bleach.clean(request.form.get('description'))
+            year = int(request.form.get('year'))
             publisher = request.form.get('publisher')
             author = request.form.get('author')
-            pages = request.form.get('pages')
+            pages = int(request.form.get('pages'))
             genre_ids = request.form.getlist('genres')
-            cover_file = request.files.get('cover')
 
-            if not (title and description and year and publisher and author and pages and cover_file):
-                flash("При сохранении данных возникла ошибка. Проверьте корректность введённых данных.", "danger")
-                return render_template('book_form.html', genres=genres, action="add")
-
-            # Создаем запись книги
-            new_book = Book(title=title, description=description, year=int(year), publisher=publisher, author=author, pages=int(pages))
+            new_book = Book(title=title, description=description, year=year, publisher=publisher, author=author, pages=pages)
             for g_id in genre_ids:
-                genre = Genre.query.get(g_id)
-                if genre:
-                    new_book.genres.append(genre)
+                g = Genre.query.get(int(g_id))
+                if g: new_book.genres.append(g)
 
             db.session.add(new_book)
-            db.session.flush() # Получаем ID книги до коммита
+            db.session.flush()
 
-            # Обработка обложки и MD5
-            file_contents = cover_file.read()
-            md5_hash = hashlib.md5(file_contents).hexdigest()
-            cover_file.seek(0)
+            # Р Р°Р±РѕС‚Р° СЃ РѕР±Р»РѕР¶РєРѕР№
+            file = request.files.get('cover')
+            if file:
+                file_bytes = file.read()
+                md5_hash = hashlib.md5(file_bytes).hexdigest()
+                file.seek(0)
 
-            existing_cover = Cover.query.filter_by(md5_hash=md5_hash).first()
-            
-            if existing_cover:
-                # Если хэш совпал, используем существующий файл
-                new_cover = Cover(filename=existing_cover.filename, mime_type=cover_file.content_type, md5_hash=md5_hash, book_id=new_book.id)
-            else:
-                # Иначе сохраняем новый файл, имя файла = MD5 хэш + расширение
-                ext = os.path.splitext(secure_filename(cover_file.filename))[1]
-                filename = f"{md5_hash}{ext}"
-                
-                if not os.path.exists(app.config['UPLOAD_FOLDER']):
-                    os.makedirs(app.config['UPLOAD_FOLDER'])
-                    
-                cover_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                new_cover = Cover(filename=filename, mime_type=cover_file.content_type, md5_hash=md5_hash, book_id=new_book.id)
+                existing_cover = Cover.query.filter_by(md5_hash=md5_hash).first()
+                if existing_cover:
+                    filename = existing_cover.filename
+                    mime_type = existing_cover.mime_type
+                else:
+                    filename = secure_filename(file.filename)
+                    mime_type = file.mimetype
+                    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-            db.session.add(new_cover)
+                new_cover = Cover(filename=filename, mime_type=mime_type, md5_hash=md5_hash, book_id=new_book.id)
+                db.session.add(new_cover)
+
             db.session.commit()
-            
-            flash("Книга успешно добавлена!", "success")
+            flash("РљРЅРёРіР° СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅР°.", "success")
             return redirect(url_for('view_book', book_id=new_book.id))
-
         except Exception as e:
             db.session.rollback()
-            flash("При сохранении данных возникла ошибка. Проверьте корректность введённых данных.", "danger")
-    
-    return render_template('book_form.html', genres=genres, action="add")
+            flash("РџСЂРё СЃРѕС…СЂР°РЅРµРЅРёРё РґР°РЅРЅС‹С… РІРѕР·РЅРёРєР»Р° РѕС€РёР±РєР°. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ РІРІРµРґС‘РЅРЅС‹С… РґР°РЅРЅС‹С….", "danger")
+            
+    return render_template('book_form.html', action='add', genres=genres, book=None)
 
-@app.route('/book/<int:book_id>/edit', methods=['GET', 'POST'])
+@app.route('/books/<int:book_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_book(book_id):
-    if current_user.role.name not in ['administrator', 'moderator']:
-        flash("У вас недостаточно прав для выполнения данного действия.", "danger")
+    if not check_rights('edit'):
+        flash("РЈ РІР°СЃ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ РґР°РЅРЅРѕРіРѕ РґРµР№СЃС‚РІРёСЏ.", "danger")
         return redirect(url_for('index'))
-    
+        
     book = Book.query.get_or_404(book_id)
     genres = Genre.query.all()
     
     if request.method == 'POST':
         try:
             book.title = request.form.get('title')
-            book.description = request.form.get('description')
+            book.description = bleach.clean(request.form.get('description'))
             book.year = int(request.form.get('year'))
             book.publisher = request.form.get('publisher')
             book.author = request.form.get('author')
@@ -127,146 +135,94 @@ def edit_book(book_id):
             genre_ids = request.form.getlist('genres')
             book.genres = []
             for g_id in genre_ids:
-                genre = Genre.query.get(g_id)
-                if genre:
-                    book.genres.append(genre)
-            
+                g = Genre.query.get(int(g_id))
+                if g: book.genres.append(g)
+
             db.session.commit()
-            flash("Данные книги успешно обновлены.", "success")
+            flash("Р”Р°РЅРЅС‹Рµ РєРЅРёРіРё СѓСЃРїРµС€РЅРѕ РѕР±РЅРѕРІР»РµРЅС‹.", "success")
             return redirect(url_for('view_book', book_id=book.id))
-        except Exception:
+        except Exception as e:
             db.session.rollback()
-            flash("При сохранении данных возникла ошибка. Проверьте корректность введённых данных.", "danger")
+            flash("РџСЂРё СЃРѕС…СЂР°РЅРµРЅРёРё РґР°РЅРЅС‹С… РІРѕР·РЅРёРєР»Р° РѕС€РёР±РєР°. РџСЂРѕРІРµСЂСЊС‚Рµ РєРѕСЂСЂРµРєС‚РЅРѕСЃС‚СЊ РІРІРµРґС‘РЅРЅС‹С… РґР°РЅРЅС‹С….", "danger")
 
-    return render_template('book_form.html', book=book, genres=genres, action="edit")
+    return render_template('book_form.html', action='edit', genres=genres, book=book)
 
-@app.route('/book/<int:book_id>/delete', methods=['POST'])
+@app.route('/books/<int:book_id>', methods=['GET'])
+def view_book(book_id):
+    book = Book.query.get_or_404(book_id)
+    reviews = Review.query.filter_by(book_id=book.id).all()
+    
+    user_review = None
+    if current_user.is_authenticated:
+        user_review = Review.query.filter_by(book_id=book.id, user_id=current_user.id).first()
+
+    collections = []
+    if current_user.is_authenticated and current_user.role.name == 'user':
+        collections = Collection.query.filter_by(user_id=current_user.id).all()
+
+    return render_template('book_view.html', book=book, reviews=reviews, user_review=user_review, collections=collections)
+
+@app.route('/books/<int:book_id>/delete', methods=['POST'])
 @login_required
 def delete_book(book_id):
-    if current_user.role.name != 'administrator':
-        flash("У вас недостаточно прав для выполнения данного действия.", "danger")
+    if not check_rights('delete'):
+        flash("РЈ РІР°СЃ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ РґР°РЅРЅРѕРіРѕ РґРµР№СЃС‚РІРёСЏ.", "danger")
         return redirect(url_for('index'))
-    
+        
     book = Book.query.get_or_404(book_id)
     try:
-        # Удаление файла обложки, если на него больше никто не ссылается
-        cover = Cover.query.filter_by(book_id=book.id).first()
-        if cover:
-            other_uses = Cover.query.filter_by(filename=cover.filename).count()
-            if other_uses <= 1:
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], cover.filename)
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-
+        if book.covers:
+            for cover in book.covers:
+                # РџСЂРѕРІРµСЂСЏРµРј, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р»Рё СЌС‚РѕС‚ С„Р°Р№Р» РґСЂСѓРіРёРјРё РєРЅРёРіР°РјРё РїРµСЂРµРґ СѓРґР°Р»РµРЅРёРµРј СЃ РґРёСЃРєР°
+                other_uses = Cover.query.filter(Cover.filename == cover.filename, Cover.book_id != book.id).count()
+                if other_uses == 0:
+                    path = os.path.join(app.config['UPLOAD_FOLDER'], cover.filename)
+                    if os.path.exists(path):
+                        os.remove(path)
+        
         db.session.delete(book)
         db.session.commit()
-        flash(f"Книга «{book.title}» успешно удалена.", "success")
-    except Exception:
+        flash("РљРЅРёРіР° СѓСЃРїРµС€РЅРѕ СѓРґР°Р»РµРЅР°.", "success")
+    except Exception as e:
         db.session.rollback()
-        flash("Ошибка при удалении книги.", "danger")
+        flash("РћС€РёР±РєР° РїСЂРё СѓРґР°Р»РµРЅРёРё РєРЅРёРіРё.", "danger")
         
     return redirect(url_for('index'))
 
-@app.route('/book/<int:book_id>')
-def view_book(book_id):
-    book = Book.query.get_or_404(book_id)
-    reviews = Review.query.filter_by(book_id=book.id).order_by(Review.created_at.desc()).all()
-    
-    # Расчет средней оценки
-    avg_rating = 0
-    if reviews:
-        avg_rating = sum([r.rating for r in reviews]) / len(reviews)
-    
-    user_review = None
-    user_collections = []
-    if current_user.is_authenticated:
-        user_review = Review.query.filter_by(book_id=book.id, user_id=current_user.id).first()
-        if current_user.role.name == 'user':
-            user_collections = Collection.query.filter_by(user_id=current_user.id).all()
 
-    return render_template('book_view.html', book=book, reviews=reviews, avg_rating=round(avg_rating, 2), user_review=user_review, user_collections=user_collections)
 
-@app.route('/book/<int:book_id>/review', methods=['GET', 'POST'])
-@login_required
-def add_review(book_id):
-    book = Book.query.get_or_404(book_id)
-    
-    existing_review = Review.query.filter_by(book_id=book.id, user_id=current_user.id).first()
-    if existing_review:
-        flash("Вы уже оставили рецензию на эту книгу.", "warning")
-        return redirect(url_for('view_book', book_id=book.id))
-        
-    if request.method == 'POST':
-        try:
-            rating = int(request.form.get('rating'))
-            text = request.form.get('text')
-            
-            if not text:
-                flash("Текст рецензии не может быть пустым.", "danger")
-                return render_template('review_form.html', book=book)
-                
-            new_review = Review(book_id=book.id, user_id=current_user.id, rating=rating, text=text)
-            db.session.add(new_review)
-            db.session.commit()
-            flash("Рецензия успешно добавлена.", "success")
-            return redirect(url_for('view_book', book_id=book.id))
-        except Exception:
-            db.session.rollback()
-            flash("Ошибка при сохранении рецензии.", "danger")
-            
-    return render_template('review_form.html', book=book)
-
-# --- ВАРИАНТ 2: МАРШРУТЫ ДЛЯ ПОДБОРОК ---
+# --- РЈРџР РђР’Р›Р•РќРР• РџРћР”Р‘РћР РљРђРњР (Р’РђР РРђРќРў 2) ---
 
 @app.route('/collections')
 @login_required
 def collections():
-    if current_user.role.name != 'user':
-        flash("У вас недостаточно прав для выполнения данного действия.", "danger")
-        return redirect(url_for('index'))
+    # Р’Р°С€Р° Р»РѕРіРёРєР° РїРѕР»СѓС‡РµРЅРёСЏ РїРѕРґР±РѕСЂРѕРє
     user_collections = Collection.query.filter_by(user_id=current_user.id).all()
     return render_template('collections.html', collections=user_collections)
 
-@app.route('/collections/add', methods=['POST'])
+@app.route('/collections/create', methods=['POST'])
 @login_required
-def add_collection():
-    if current_user.role.name != 'user':
-        flash("У вас недостаточно прав для выполнения данного действия.", "danger")
-        return redirect(url_for('index'))
-    
+def create_collection():
     name = request.form.get('name')
     if name:
-        try:
-            new_collection = Collection(name=name, user_id=current_user.id)
-            db.session.add(new_collection)
-            db.session.commit()
-            flash("Подборка успешно создана!", "success")
-        except Exception:
-            db.session.rollback()
-            flash("Ошибка при создании подборки.", "danger")
+        new_collection = Collection(name=name, user_id=current_user.id)
+        db.session.add(new_collection)
+        db.session.commit()
+        flash("РџРѕРґР±РѕСЂРєР° СѓСЃРїРµС€РЅРѕ СЃРѕР·РґР°РЅР°!", "success")
+    else:
+        flash("РќР°Р·РІР°РЅРёРµ РїРѕРґР±РѕСЂРєРё РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј.", "danger")
     return redirect(url_for('collections'))
 
-@app.route('/collections/<int:collection_id>')
+@app.route('/books/<int:book_id>/add_to_collection', methods=['POST'])
 @login_required
-def view_collection(collection_id):
-    if current_user.role.name != 'user':
-        flash("У вас недостаточно прав.", "danger")
-        return redirect(url_for('index'))
-    collection = Collection.query.get_or_404(collection_id)
-    if collection.user_id != current_user.id:
-        abort(403)
-    return render_template('index.html', books=collection.books, collection_title=collection.name)
-
-@app.route('/book/<int:book_id>/add_to_collection', methods=['POST'])
-@login_required
-def add_to_collection(book_id):
-    if current_user.role.name != 'user':
-        flash("У вас недостаточно прав.", "danger")
-        return redirect(url_for('index'))
-    
-    book = Book.query.get_or_404(book_id)
+def add_to_collection(book_id): # РђСЂРіСѓРјРµРЅС‚ collection_id Р·РґРµСЃСЊ РЅРµ РЅСѓР¶РµРЅ, Р±РµСЂРµРј РёР· С„РѕСЂРјС‹
     collection_id = request.form.get('collection_id')
+    if not collection_id:
+        flash("РџРѕРґР±РѕСЂРєР° РЅРµ РІС‹Р±СЂР°РЅР°", "danger")
+        return redirect(url_for('view_book', book_id=book_id))
+        
     collection = Collection.query.get_or_404(collection_id)
+    book = Book.query.get_or_404(book_id)
     
     if collection.user_id != current_user.id:
         abort(403)
@@ -274,16 +230,74 @@ def add_to_collection(book_id):
     if book not in collection.books:
         collection.books.append(book)
         db.session.commit()
-        flash("Книга успешно добавлена в подборку.", "success")
+        flash("РљРЅРёРіР° СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅР° РІ РїРѕРґР±РѕСЂРєСѓ.", "success")
     else:
-        flash("Книга уже находится в этой подборке.", "warning")
+        flash("РљРЅРёРіР° СѓР¶Рµ РЅР°С…РѕРґРёС‚СЃСЏ РІ СЌС‚РѕР№ РїРѕРґР±РѕСЂРєРµ.", "warning")
         
-    return redirect(url_for('view_book', book_id=book.id))
+    return redirect(url_for('view_book', book_id=book_id))
 
-# --- АУТЕНТИФИКАЦИЯ ---
+# --- Р РђР‘РћРўРђ РЎ РџРћР”Р‘РћР РљРђРњР ---
 
-from flask_login import login_user, logout_user
-from werkzeug.security import check_password_hash
+@app.route('/collections/<int:collection_id>')
+def view_collection(collection_id):
+    # РџРѕР»СѓС‡Р°РµРј РїРѕРґР±РѕСЂРєСѓ РїРѕ ID
+    from models import Collection, Book
+    collection = Collection.query.get_or_404(collection_id)
+    
+    # РљРЅРёРіРё РІ РїРѕРґР±РѕСЂРєРµ РґРѕСЃС‚СѓРїРЅС‹ С‡РµСЂРµР· СЃРІСЏР·СЊ collection.books (СѓР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ РѕРЅР° РµСЃС‚СЊ РІ РјРѕРґРµР»Рё)
+    return render_template('collection_view.html', collection=collection)
+
+@app.route('/collections/delete/<int:collection_id>', methods=['POST'])
+@login_required
+def delete_collection(collection_id):
+    collection = Collection.query.get_or_404(collection_id)
+    if collection.user_id != current_user.id:
+        abort(403)
+    db.session.delete(collection)
+    db.session.commit()
+    flash("РџРѕРґР±РѕСЂРєР° СѓРґР°Р»РµРЅР°.", "success")
+    return redirect(url_for('collections'))
+
+# --- Р РђР‘РћРўРђ РЎ Р Р•Р¦Р•РќР—РРЇРњР ---
+@app.route('/books/<int:book_id>/add_review', methods=['GET', 'POST'])
+@login_required
+def add_review(book_id):
+    book = Book.query.get_or_404(book_id)
+    
+    # РџСЂРѕРІРµСЂРєР°, РЅРµ РѕСЃС‚Р°РІР»СЏР» Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ СѓР¶Рµ РѕС‚Р·С‹РІ
+    existing_review = Review.query.filter_by(book_id=book_id, user_id=current_user.id).first()
+    if existing_review:
+        flash("Р’С‹ СѓР¶Рµ РѕСЃС‚Р°РІРёР»Рё СЂРµС†РµРЅР·РёСЋ РЅР° СЌС‚Сѓ РєРЅРёРіСѓ.", "warning")
+        return redirect(url_for('view_book', book_id=book_id))
+
+    if request.method == 'POST':
+        rating = request.form.get('rating')
+        text = request.form.get('text')
+        
+        # Р‘Р°Р·РѕРІР°СЏ РІР°Р»РёРґР°С†РёСЏ
+        if not rating or not text:
+            flash("РџРѕР¶Р°Р»СѓР№СЃС‚Р°, Р·Р°РїРѕР»РЅРёС‚Рµ РІСЃРµ РїРѕР»СЏ.", "danger")
+            return redirect(url_for('add_review', book_id=book_id))
+        
+        new_review = Review(
+            book_id=book_id, 
+            user_id=current_user.id, 
+            rating=int(rating), 
+            text=text
+        )
+        
+        try:
+            db.session.add(new_review)
+            db.session.commit()
+            flash("Р РµС†РµРЅР·РёСЏ СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅР°!", "success")
+            return redirect(url_for('view_book', book_id=book_id))
+        except Exception as e:
+            db.session.rollback()
+            flash("РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР° РїСЂРё СЃРѕС…СЂР°РЅРµРЅРёРё СЂРµС†РµРЅР·РёРё.", "danger")
+            
+    return render_template('review_form.html', book=book)
+
+# --- РђРЈРўР•РќРўРР¤РРљРђР¦РРЇ ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -295,20 +309,18 @@ def login():
         user = User.query.filter_by(login=login_data).first()
         if user and check_password_hash(user.password_hash, password):
             login_user(user, remember=remember)
-            flash("Успешный вход в систему.", "success")
+            flash("РЈСЃРїРµС€РЅС‹Р№ РІС…РѕРґ РІ СЃРёСЃС‚РµРјСѓ.", "success")
             return redirect(url_for('index'))
         
-        flash("Невозможно аутентифицироваться с указанными логином и паролем", "danger")
+        flash("РќРµРІРѕР·РјРѕР¶РЅРѕ Р°СѓС‚РµРЅС‚РёС„РёС†РёСЂРѕРІР°С‚СЊСЃСЏ СЃ СѓРєР°Р·Р°РЅРЅС‹РјРё Р»РѕРіРёРЅРѕРј Рё РїР°СЂРѕР»РµРј", "danger")
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash("Вы вышли из системы.", "info")
+    flash("Р’С‹ РІС‹С€Р»Рё РёР· СЃРёСЃС‚РµРјС‹.", "success")
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all() # Создаст таблицы, если их нет
     app.run(debug=True)

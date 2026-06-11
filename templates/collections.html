@@ -19,8 +19,13 @@
             <td>{{ col.name }}</td>
             <td>{{ col.books|length }}</td>
             <td>
-                <a href="{{ url_for('view_collection', collection_id=col.id) }}" class="btn btn-primary btn-sm">Просмотр</a>
-            </td>
+    <a href="{{ url_for('view_collection', collection_id=col.id) }}" class="btn btn-info btn-sm">
+    Просмотреть книги
+</a>
+    <form action="{{ url_for('delete_collection', collection_id=col.id) }}" method="POST" style="display:inline;">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Удалить подборку?')">Удалить</button>
+    </form>
+</td>
         </tr>
         {% else %}
         <tr>
@@ -31,23 +36,21 @@
 </table>
 
 <div class="modal fade" id="newCollectionModal" tabindex="-1">
-    <div class="modal-dialog modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">Новая подборка</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Новая подборка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('create_collection') }}" method="POST">
+    <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Название подборки</label>
+            <input type="text" name="name" class="form-control" required>
         </div>
-        <form action="{{ url_for('add_collection') }}" method="POST">
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Название подборки</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-success">Добавить</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-            </div>
-        </form>
+    </div>
+    </form>
+        </div>
     </div>
 </div>
 {% endblock %}

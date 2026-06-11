@@ -1,30 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Написать рецензию на книгу «{{ book.title }}»</h2>
-
-<form method="POST" class="bg-white p-4 rounded shadow-sm mt-3">
-    <div class="mb-3">
-        <label class="form-label">Оценка книги</label>
-        <select name="rating" class="form-select">
-            <option value="5" selected>5 – отлично</option>
-            <option value="4">4 – хорошо</option>
-            <option value="3">3 – удовлетворительно</option>
-            <option value="2">2 – неудовлетворительно</option>
-            <option value="1">1 – плохо</option>
-            <option value="0">0 – ужасно</option>
-        </select>
-    </div>
-    <div class="mb-3">
-        <label class="form-label">Текст рецензии (Поддерживает Markdown)</label>
-        <textarea name="text" id="review-editor" class="form-control" rows="5"></textarea>
-    </div>
-    <button type="submit" class="btn btn-success">Сохранить</button>
-    <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-secondary">Отмена</a>
-</form>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    const easyMDE = new EasyMDE({element: document.getElementById('review-editor')});
-</script>
+<div class="card shadow-sm p-4 bg-white mt-4">
+    <h2>Оставить рецензию на книгу: {{ book.title }}</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">Оценка (от 1 до 5):</label>
+            <input type="number" name="rating" class="form-control" min="1" max="5" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ваша рецензия:</label>
+            <textarea name="text" class="form-control" rows="5" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Отправить рецензию</button>
+        <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
 {% endblock %}
